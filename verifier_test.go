@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"github.com/smartystreets/assertions/should"
 	"github.com/smartystreets/gunit"
 	"net/http"
@@ -95,6 +96,44 @@ func (this *VerifierFixture) TestHTTPResponseBodyClosed() {
 	this.client.Configure(rawJSONOutput, http.StatusOK, nil)
 	this.verifier.Verify(AddressInput{})
 	this.So(this.client.responseBody.closed, should.Equal, 1)
+}
+
+func (this *VerifierFixture) TestAddressStatus() {
+	var (
+		deliverableJSON       = buildAnalysisJSON("Y", "N", "Y")
+		missingSecodaryJSON   = buildAnalysisJSON("D", "N", "Y")
+		dropperdSecondartJSON = buildAnalysisJSON("S", "N", "Y")
+		vacantJSON            = buildAnalysisJSON("Y", "Y", "Y")
+		inactiveJSON          = buildAnalysisJSON("Y", "N", "?")
+		invalidJSON           = buildAnalysisJSON("N", "?", "?")
+	)
+	this.verifyAndAssertStatus(deliverableJSON, "Deliverable")
+	this.verifyAndAssertStatus(missingSecodaryJSON, "Deliverable")
+	this.verifyAndAssertStatus(dropperdSecondartJSON, "Deliverable")
+	this.verifyAndAssertStatus(vacantJSON, "Vacant")
+	this.verifyAndAssertStatus(inactiveJSON, "Inactive")
+	this.verifyAndAssertStatus(invalidJSON, "Invalid")
+
+}
+
+func (this *VerifierFixture) verifyAndAssertStatus(jsonResponse, expectedStatus string) {
+	this.client.Configure(jsonResponse, http.StatusOK, nil)
+	output := this.verifier.Verify(AddressInput{})
+	this.So(output.Status, should.Equal, expectedStatus)
+}
+
+func buildAnalysisJSON(match, vacant, active string) string {
+	template := `
+	[
+		{
+			"analysis": {
+				"dpv_match_code": "%s",
+				"dpv_vacant": "%s",
+				"active": "%s"
+			}
+		}
+	]`
+	return fmt.Sprintf(template, match, vacant, active)
 }
 
 /////////////////////////////////////////////////////////
