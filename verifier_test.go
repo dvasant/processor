@@ -147,7 +147,7 @@ type FakeHTTPClient struct {
 
 func (this *FakeHTTPClient) Configure(responseText string, statusCode int, err error) {
 	if err == nil {
-		this.responseBody = NewSpyBuffer(responseText)
+		this.responseBody = NewVerifierSpyBuffer(responseText)
 		this.response = &http.Response{
 			Body:       this.responseBody,
 			StatusCode: statusCode,
@@ -169,7 +169,7 @@ type SpyBuffer struct {
 	closed int
 }
 
-func NewSpyBuffer(value string) *SpyBuffer {
+func NewVerifierSpyBuffer(value string) *SpyBuffer {
 	return &SpyBuffer{
 		Buffer: bytes.NewBufferString(value),
 	}
