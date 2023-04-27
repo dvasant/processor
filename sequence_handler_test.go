@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"github.com/smartystreets/assertions/should"
 	"github.com/smartystreets/gunit"
 	"testing"
@@ -24,30 +25,41 @@ func (this *SequenceHandlerFixture) Setup() {
 }
 
 func (this *SequenceHandlerFixture) TestExpectedEnvelopeSentToOutput() {
-	this.sendEnvelopersInsequence(0, 1, 2, 3, 4)
+	this.sendEnvelopersInSequence(0, 1, 2, 3, 4)
 	this.handler.Handle()
-	this.So(this.sequenceOreder(), should.Resemble, []int{0, 1, 2, 3, 4})
+	this.So(this.sequenceOrder(), should.Resemble, []int{0, 1, 2, 3})
+	if this.So(this.handler.buffer, should.BeEmpty) {
+		fmt.Println(this.handler.buffer[6])
+	}
+
 }
 
 func (this *SequenceHandlerFixture) TestEnvelopesReceivedOutofOrder_BufferedUtilsConfiguredBlock() {
-	this.sendEnvelopersInsequence(4, 2, 0, 3, 1)
+	this.sendEnvelopersInSequence(4, 2, 0, 3, 1)
 
 	this.handler.Handle()
 
-	this.So(this.sequenceOreder(), should.Resemble, []int{0, 1, 2, 3, 4})
+	this.So(this.sequenceOrder(), should.Resemble, []int{0, 1, 2, 3})
 	this.So(this.handler.buffer, should.BeEmpty)
 }
 
-func (this *SequenceHandlerFixture) sendEnvelopersInsequence(sequences ...int) {
+func (this *SequenceHandlerFixture) sendEnvelopersInSequence(sequences ...int) {
+	max := maxInt(sequences)
 	for _, sequence := range sequences {
-		this.input <- &Envelope{Sequence: sequence}
+		this.input <- &Envelope{Sequence: sequence, EOF: max == sequence}
 	}
-	close(this.input)
 }
 
-func (this *SequenceHandlerFixture) sequenceOreder() (order []int) {
+func maxInt(ints []int) (max int) {
+	for _, value := range ints {
+		if value > max {
+			max = value
+		}
+	}
+	return max
+}
 
-	close(this.output)
+func (this *SequenceHandlerFixture) sequenceOrder() (order []int) {
 	for envelope := range this.output {
 		order = append(order, envelope.Sequence)
 	}
