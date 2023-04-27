@@ -1,10 +1,16 @@
 package processor
 
+const (
+	initialSqquenceValue = 0
+)
+
 type (
 	Envelope struct {
-		Input    AddressInput
-		Output   AddressOutput
+		EOF      bool
 		Sequence int
+
+		Input  AddressInput
+		Output AddressOutput
 	}
 
 	AddressInput struct {
